@@ -169,6 +169,30 @@ function Ensure-FirewallRule {
     }
 }
 
+function Ensure-ICMPFirewallRule {
+    $ruleName = "Allow ICMPv4-In (Ansible Lab)"
+
+    $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+
+    if (-not $existing) {
+        Write-Info "Enabling ICMP (ping) inbound..."
+
+        New-NetFirewallRule `
+            -DisplayName $ruleName `
+            -Name "ICMPv4-In-Allow" `
+            -Protocol ICMPv4 `
+            -IcmpType 8 `
+            -Direction Inbound `
+            -Action Allow `
+            -Profile Any | Out-Null
+
+        Write-Ok "ICMPv4 ping enabled."
+    }
+    else {
+        Write-Info "ICMP firewall rule already exists."
+    }
+}
+
 function Configure-WinRMAuth {
     Write-Info "Configuring WinRM authentication and encryption settings..."
 
@@ -232,6 +256,7 @@ if (-not $dnsNames -or $dnsNames.Count -eq 0) {
 $cert = Ensure-Certificate -DnsNames $dnsNames
 Ensure-HttpsListener -Thumbprint $cert.Thumbprint
 Ensure-FirewallRule
+Ensure-ICMPFirewallRule
 Configure-WinRMAuth
 
 Write-Ok "Bootstrap complete."
